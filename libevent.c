@@ -30,6 +30,7 @@
 #include "php_streams.h"
 #include "php_network.h"
 #include "php_libevent.h"
+#include "Zend/zend_exceptions.h"
 
 #include <signal.h>
 
@@ -239,14 +240,22 @@ static void _php_event_callback(int fd, short events, void *arg) /* {{{ */ {
     args[2] = callback->arg;
     Z_ADDREF_P(callback->arg);
 
-    if (call_user_function(EG(function_table), NULL, callback->func, &retval, 3, args TSRMLS_CC) == SUCCESS) {
-        zval_dtor(&retval);
-    }
-
+    zend_try {
+        if (call_user_function(EG(function_table), NULL, callback->func, &retval, 3, args TSRMLS_CC) == SUCCESS) {
+            zval_dtor(&retval);
+        }
+    } zend_catch {
+        event_base_loopbreak(event->base->base);
+    } zend_end_try();
+    
     zval_ptr_dtor(&(args[0]));
     zval_ptr_dtor(&(args[1]));
     zval_ptr_dtor(&(args[2]));
-
+    
+    if (EG(exception)) {
+        zend_throw_exception_object(EG(exception));
+        event_base_loopbreak(event->base->base);
+    }
 }
 
 /* }}} */
