@@ -277,13 +277,21 @@ static void _php_bufferevent_readcb(struct bufferevent *be, void *arg) /* {{{ */
     args[1] = bevent->arg;
     Z_ADDREF_P(args[1]);
 
-    if (call_user_function(EG(function_table), NULL, bevent->readcb, &retval, 2, args TSRMLS_CC) == SUCCESS) {
-        zval_dtor(&retval);
-    }
+    zend_try {
+        if (call_user_function(EG(function_table), NULL, bevent->readcb, &retval, 2, args TSRMLS_CC) == SUCCESS) {
+            zval_dtor(&retval);
+        }
+    } zend_catch {
+        event_base_loopbreak(bevent->base->base);
+    } zend_end_try();
 
     zval_ptr_dtor(&(args[0]));
     zval_ptr_dtor(&(args[1]));
 
+    if (EG(exception)) {
+        zend_throw_exception_object(EG(exception));
+        event_base_loopbreak(bevent->base->base);
+    }
 }
 
 /* }}} */
@@ -305,13 +313,21 @@ static void _php_bufferevent_writecb(struct bufferevent *be, void *arg) /* {{{ *
     args[1] = bevent->arg;
     Z_ADDREF_P(args[1]);
 
-    if (call_user_function(EG(function_table), NULL, bevent->writecb, &retval, 2, args TSRMLS_CC) == SUCCESS) {
-        zval_dtor(&retval);
-    }
+    zend_try {
+        if (call_user_function(EG(function_table), NULL, bevent->writecb, &retval, 2, args TSRMLS_CC) == SUCCESS) {
+            zval_dtor(&retval);
+        }
+    } zend_catch {
+        event_base_loopbreak(bevent->base->base);
+    } zend_end_try();
 
     zval_ptr_dtor(&(args[0]));
     zval_ptr_dtor(&(args[1]));
-
+    
+    if (EG(exception)) {
+        zend_throw_exception_object(EG(exception));
+        event_base_loopbreak(bevent->base->base);
+    }
 }
 
 /* }}} */
@@ -336,14 +352,22 @@ static void _php_bufferevent_errorcb(struct bufferevent *be, short what, void *a
     args[2] = bevent->arg;
     Z_ADDREF_P(args[2]);
 
-    if (call_user_function(EG(function_table), NULL, bevent->errorcb, &retval, 3, args TSRMLS_CC) == SUCCESS) {
-        zval_dtor(&retval);
-    }
+    zend_try {
+        if (call_user_function(EG(function_table), NULL, bevent->errorcb, &retval, 3, args TSRMLS_CC) == SUCCESS) {
+            zval_dtor(&retval);
+        }
+    } zend_catch {
+        event_base_loopbreak(bevent->base->base);
+    } zend_end_try();
 
     zval_ptr_dtor(&(args[0]));
     zval_ptr_dtor(&(args[1]));
     zval_ptr_dtor(&(args[2]));
 
+    if (EG(exception)) {
+        zend_throw_exception_object(EG(exception));
+        event_base_loopbreak(bevent->base->base);
+    }
 }
 /* }}} */
 
